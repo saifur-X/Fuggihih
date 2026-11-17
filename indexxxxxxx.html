@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mess Management System</title>
+    <!-- Fonts: Inter & Hind Siliguri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '"Hind Siliguri"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)',
+                        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                        'dock': '0 -1px 0 rgba(0,0,0,0.06), 0 -8px 20px rgba(0,0,0,0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Inter', 'Hind Siliguri', -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.96) translateY(6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal {
+            animation: modalIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .safe-area-pb {
+            padding-bottom: env(safe-area-inset-bottom, 8px);
+        }
+        ::-webkit-scrollbar { height: 4px; width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
+        .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-[#F7F7F5] text-zinc-900 dark:bg-[#0C0C0E] dark:text-zinc-100 transition-colors duration-150 pb-24 md:pb-0">
+
+    <div>
+        <!-- 1. PRECISION ENGINEERED STICKY TOP BAR -->
+        <header class="bg-white/90 dark:bg-[#121215]/90 backdrop-blur-md sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 h-15 py-2.5 flex justify-between items-center gap-3">
+                <!-- Brand Title & Live Date -->
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-xs">
+                        <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h1 id="navMessName" class="text-[14px] sm:text-[16px] font-bold tracking-tight text-zinc-900 dark:text-white leading-tight break-words">
+                            মেস ম্যানেজমেন্ট
+                        </h1>
+                        <p id="liveDateBar" class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-tight mt-0.5"></p>
+                    </div>
+                </div>
+
+                <!-- Desktop Segmented Navigation (Strictly Hidden on Mobile < 768px) -->
+                <nav id="desktopRoleTabs" class="hidden max-md:!hidden md:flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-lg border border-zinc-200/70 dark:border-zinc-700/70">
+                    <button onclick="switchTab('home')" id="dtab-home" data-i18n="tab_home" class="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-100">হোম ও হিসাব</button>
+                    <button onclick="switchTab('member')" id="dtab-member" data-i18n="tab_member" class="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-100">আমার মিল ও পেমেন্ট</button>
+                    <button onclick="switchTab('profile')" id="dtab-profile" data-i18n="tab_profile" class="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-100">প্রোফাইল</button>
+                    <button onclick="switchTab('admin')" id="dtab-admin" data-i18n="tab_admin" class="hidden text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-100">অ্যাডমিন প্যানেল</button>
+                </nav>
+
+                <!-- Right Controls -->
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button id="langToggleBtn" onclick="toggleLanguage()" class="h-8 px-2.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-transform active:scale-95">
+                        EN
+                    </button>
+
+                    <button id="darkModeBtn" onclick="toggleDarkMode()" class="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-transform active:scale-95" aria-label="Theme">
+                        <svg id="themeIconMoon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                        <svg id="themeIconSun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </button>
+
+                    <button id="loginBtn" onclick="openLoginModal()" data-i18n="login_btn" class="h-8 px-3.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs transition-transform active:scale-95">
+                        লগইন
+                    </button>
+
+                    <div id="userControls" class="hidden flex items-center gap-1.5">
+                        <span id="loggedInUserName" class="hidden lg:inline-block text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 rounded-md truncate max-w-[130px]"></span>
+                        <button onclick="logout()" data-i18n="logout_btn" class="h-8 px-2.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200/70 dark:border-rose-800/50 transition-transform active:scale-95">
+                            লগআউট
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Clean Announcement Strip -->
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 pt-3.5">
+            <div class="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-amber-950 dark:text-amber-200 px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 font-medium">
+                <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                <span id="noticeText" class="leading-snug">লোড হচ্ছে...</span>
+            </div>
+        </div>
+
+        <main class="max-w-5xl mx-auto px-4 sm:px-6 mt-4 sm:mt-5 space-y-5">
+
+            <!-- ==================== 1. HOME SECTION ==================== -->
+            <div id="section-home" class="space-y-5">
+                
+                <!-- INSTANT ZERO-LAG QUICK MEAL CARD -->
+                <div id="quickMealCard" class="hidden bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90">
+                    <div class="flex items-center justify-between gap-2 mb-3.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <div>
+                                <h3 data-i18n="quick_meal_title" class="text-sm font-bold text-zinc-900 dark:text-white tracking-tight">আজকের আমার মিল স্ট্যাটাস</h3>
+                                <p data-i18n="quick_meal_sub" class="text-[11px] text-zinc-500 dark:text-zinc-400">এক ট্যাপেই আজকের মিল অন বা অফ করুন</p>
+                            </div>
+                        </div>
+                        <span id="quickUserBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700 shrink-0"></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3" id="quickToggleButtons"></div>
+                </div>
+
+                <!-- Date Control Header -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border border-zinc-200/80 dark:border-zinc-800/90">
+                    <div>
+                        <h2 data-i18n="daily_meal_title" class="text-base font-bold text-zinc-900 dark:text-white tracking-tight">প্রতিদিনের মিলের হিসাব</h2>
+                        <p data-i18n="daily_meal_sub" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">১ নভেম্বর ২০২৬ থেকে যেকোনো দিনের বাজারের ও রান্নার রেকর্ড দেখুন</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200/90 dark:border-zinc-800">
+                        <label data-i18n="date_label" class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">তারিখ:</label>
+                        <input type="date" id="homeDatePicker" min="2026-11-01" onchange="loadDailyMealBoard()" class="bg-transparent text-xs sm:text-sm font-bold text-zinc-900 dark:text-white focus:outline-none tabular-nums">
+                    </div>
+                </div>
+
+                <!-- Morning & Night Meal Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                    <!-- Morning Card -->
+                    <div class="bg-white dark:bg-[#141417] rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 p-4 sm:p-5">
+                        <div class="flex justify-between items-center pb-3.5 mb-3.5 border-b border-zinc-100 dark:border-zinc-800/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                </div>
+                                <div>
+                                    <h3 data-i18n="morning_title" class="text-[15px] font-bold text-zinc-900 dark:text-white tracking-tight">সকালের রান্না (Morning)</h3>
+                                    <p data-i18n="member_plus_guest" class="text-xs text-zinc-500 dark:text-zinc-400">মেম্বার + গেস্ট মিল</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span id="morningTotalCount" class="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tabular-nums leading-none">0</span>
+                                <span class="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mt-1">Meals</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3.5">
+                            <div>
+                                <p data-i18n="eating_list_label" class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">যারা খাবে (Eating)</p>
+                                <div id="morningEatList" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                            <div class="border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
+                                <p data-i18n="off_list_label" class="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">যারা খাবে না (Off)</p>
+                                <div id="morningOffList" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Night Card -->
+                    <div class="bg-white dark:bg-[#141417] rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 p-4 sm:p-5">
+                        <div class="flex justify-between items-center pb-3.5 mb-3.5 border-b border-zinc-100 dark:border-zinc-800/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/70 dark:border-sky-800/40 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                                </div>
+                                <div>
+                                    <h3 data-i18n="night_title" class="text-[15px] font-bold text-zinc-900 dark:text-white tracking-tight">রাতের রান্না (Night)</h3>
+                                    <p data-i18n="member_plus_guest" class="text-xs text-zinc-500 dark:text-zinc-400">মেম্বার + গেস্ট মিল</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span id="nightTotalCount" class="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tabular-nums leading-none">0</span>
+                                <span class="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mt-1">Meals</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3.5">
+                            <div>
+                                <p data-i18n="eating_list_label" class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">যারা খাবে (Eating)</p>
+                                <div id="nightEatList" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                            <div class="border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
+                                <p data-i18n="off_list_label" class="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">যারা খাবে না (Off)</p>
+                                <div id="nightOffList" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Fee & Deduction Summary -->
+                <div class="bg-white dark:bg-[#141417] rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h2 data-i18n="monthly_calc_title" class="text-base font-bold text-zinc-900 dark:text-white tracking-tight">মাসিক ফি এবং মাইনাসের হিসাব</h2>
+                            <p id="ruleSubtext" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5"></p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200/90 dark:border-zinc-800">
+                            <label data-i18n="month_label" class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">মাস:</label>
+                            <input type="month" id="monthPicker" min="2026-11" onchange="loadMonthlySummary()" class="bg-transparent text-zinc-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none tabular-nums">
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table (>= 768px) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-zinc-50/90 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">
+                                    <th data-i18n="th_member_name" class="py-3.5 px-4">মেম্বারের নাম</th>
+                                    <th data-i18n="th_monthly_fee" class="py-3.5 px-4 text-center">মাসিক ফি</th>
+                                    <th data-i18n="th_full_off" class="py-3.5 px-4 text-center">ফুল-ডে অফ (২ বেলা)</th>
+                                    <th data-i18n="th_minus_amt" class="py-3.5 px-4 text-center">মাইনাস টাকা (-)</th>
+                                    <th data-i18n="th_guest_meal" class="py-3.5 px-4 text-center">গেস্ট মিল (+)</th>
+                                    <th data-i18n="th_payable" class="py-3.5 px-4 text-center text-zinc-900 dark:text-white">দেয় টাকা (Payable)</th>
+                                    <th data-i18n="th_payment_status" class="py-3.5 px-4 text-center">পেমেন্ট ও ভেরিফিকেশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlySummaryBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/80 tabular-nums"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Collapsible Accordion Cards (< 768px) -->
+                    <div id="monthlySummaryMobile" class="md:hidden divide-y divide-zinc-100 dark:divide-zinc-800/80 tabular-nums"></div>
+                </div>
+            </div>
+
+            <!-- ==================== 2. MEMBER DASHBOARD ==================== -->
+            <div id="section-member" class="hidden space-y-5">
+                
+                <!-- Payment & Verification Box -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-6 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90">
+                    <div class="flex flex-wrap justify-between items-start gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-5">
+                        <div>
+                            <h3 data-i18n="pay_box_title" class="text-base font-bold text-zinc-900 dark:text-white tracking-tight">মাসিক মেস ফি পেমেন্ট ও ভেরিফিকেশন</h3>
+                            <p data-i18n="pay_box_sub" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">আগে UPI বা ক্যাশে টাকা দিয়ে নিচে পেমেন্ট রিকোয়েস্ট পাঠান</p>
+                        </div>
+                        <div class="text-right">
+                            <span data-i18n="this_month_status" class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">এই মাসের স্ট্যাটাস</span>
+                            <span id="memberMyPayStatus" class="inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">...</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+                        <div class="bg-zinc-50 dark:bg-zinc-900/80 p-4 sm:p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-2.5">
+                            <div data-i18n="step1_pay" class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">ধাপ ১: পেমেন্ট করুন</div>
+                            <p class="text-sm text-zinc-700 dark:text-zinc-300"><span data-i18n="mess_upi_label">মেসের UPI ID:</span> <span id="displayUpiId" class="font-mono font-bold text-zinc-900 dark:text-white select-all"></span></p>
+                            <p class="text-sm text-zinc-700 dark:text-zinc-300"><span data-i18n="your_payable_label">আপনার দেয় টাকা:</span> <span id="memberMyPayable" class="font-extrabold text-emerald-600 dark:text-emerald-400 text-xl tabular-nums">₹0</span></p>
+                            <div class="pt-1.5">
+                                <a id="upiPayLink" href="#" data-i18n="pay_upi_btn" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95">
+                                    UPI অ্যাপ দিয়ে পেমেন্ট করুন
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3.5">
+                            <div data-i18n="step2_req" class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">ধাপ ২: পেমেন্ট ভেরিফিকেশন রিকোয়েস্ট পাঠান</div>
+                            <div class="grid sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label data-i18n="pay_mode_label" class="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">পেমেন্ট মাধ্যম</label>
+                                    <select id="reqPayMode" onchange="toggleUtrInput()" class="w-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-zinc-900 dark:focus:border-white">
+                                        <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                                        <option value="Cash">Cash</option>
+                                    </select>
+                                </div>
+                                <div id="utrInputBox">
+                                    <label data-i18n="utr_label" class="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">UTR / Transaction ID (শেষ ৪-১২ সংখ্যা)</label>
+                                    <input type="text" id="reqUtrNumber" placeholder="4312XXXXXXXX" class="w-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-zinc-900 dark:focus:border-white">
+                                </div>
+                            </div>
+                            <button onclick="submitPaymentRequest()" data-i18n="submit_req_btn" class="w-full bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-2.5 px-4 rounded-lg text-sm font-semibold transition-transform active:scale-95">
+                                পেমেন্ট রিকোয়েস্ট সাবমিট করুন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Vacation Mode -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90">
+                    <h3 data-i18n="vacation_title" class="font-bold text-zinc-900 dark:text-white mb-3.5 text-sm sm:text-base tracking-tight">ভ্যাকেশন মোড (একসাথে একাধিক দিন মিল অফ/অন করুন)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label data-i18n="from_date_label" class="text-xs font-medium text-zinc-500 mb-1 block">শুরুর তারিখ (From)</label>
+                            <input type="date" id="bulkStartDate" min="2026-11-01" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-medium">
+                        </div>
+                        <div>
+                            <label data-i18n="to_date_label" class="text-xs font-medium text-zinc-500 mb-1 block">শেষ তারিখ (To)</label>
+                            <input type="date" id="bulkEndDate" min="2026-11-01" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-medium">
+                        </div>
+                        <div>
+                            <label data-i18n="status_label" class="text-xs font-medium text-zinc-500 mb-1 block">স্ট্যাটাস</label>
+                            <select id="bulkStatus" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-semibold">
+                                <option value="false" data-i18n="opt_both_off">২ বেলাই খাবো না (Full Off)</option>
+                                <option value="true" data-i18n="opt_both_on">২ বেলাই খাবো (Full On)</option>
+                            </select>
+                        </div>
+                        <button onclick="applyBulkMeal()" data-i18n="save_btn" class="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-2 px-4 rounded-lg text-sm font-semibold transition-transform active:scale-95">সেভ করুন</button>
+                    </div>
+                </div>
+
+                <!-- Date-wise Meal Toggle -->
+                <div class="bg-white dark:bg-[#141417] rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800/80">
+                        <h3 data-i18n="schedule_title" class="font-bold text-zinc-900 dark:text-white text-sm sm:text-base tracking-tight">তারিখ অনুযায়ী মিল অন/অফ এবং গেস্ট মিল</h3>
+                        <p data-i18n="schedule_sub" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">সকাল ও রাত ২ বেলাই অফ রাখলে সেই দিনের টাকা মাইনাস হবে</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[520px]">
+                            <thead>
+                                <tr class="bg-zinc-50/90 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">
+                                    <th data-i18n="th_date_day" class="py-3 px-4">তারিখ ও বার</th>
+                                    <th data-i18n="th_morning_meal" class="py-3 px-4 text-center">সকালের মিল</th>
+                                    <th data-i18n="th_night_meal" class="py-3 px-4 text-center">রাতের মিল</th>
+                                    <th data-i18n="th_guest_mn" class="py-3 px-4 text-center">গেস্ট (সকাল / রাত)</th>
+                                    <th data-i18n="th_day_calc" class="py-3 px-4 text-center">দিনের হিসাব</th>
+                                </tr>
+                            </thead>
+                            <tbody id="memberMealTable" class="divide-y divide-zinc-100 dark:divide-zinc-800/80 tabular-nums"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== 3. MEMBER PROFILE ==================== -->
+            <div id="section-profile" class="hidden space-y-6">
+                <div class="bg-white dark:bg-[#141417] p-5 sm:p-6 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 max-w-lg mx-auto space-y-5">
+                    <div class="border-b border-zinc-100 dark:border-zinc-800 pb-4 flex justify-between items-center">
+                        <h3 data-i18n="my_profile_title" class="text-base sm:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">আমার প্রোফাইল (My Profile)</h3>
+                        <span id="profileViewRole" class="uppercase font-bold text-[11px] tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 px-2.5 py-0.5 rounded-md"></span>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                            <span data-i18n="lbl_full_name" class="text-zinc-500">পুরো নাম:</span>
+                            <span id="profileViewName" class="font-semibold text-zinc-900 dark:text-white"></span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                            <span data-i18n="lbl_username" class="text-zinc-500">লগইন ইউজারনেম (ID):</span>
+                            <span id="profileViewUsername" class="font-mono font-semibold text-zinc-900 dark:text-white"></span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                            <span data-i18n="lbl_phone" class="text-zinc-500">ফোন নম্বর:</span>
+                            <span id="profileViewPhone" class="font-medium tabular-nums"></span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                            <span data-i18n="lbl_join_date" class="text-zinc-500">মিল শুরুর তারিখ:</span>
+                            <span id="profileViewJoinDate" class="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums"></span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                            <span data-i18n="current_pass_label" class="text-zinc-500">বর্তমান পাসওয়ার্ড:</span>
+                            <span id="profileViewPassword" class="font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold px-2.5 py-0.5 rounded-md"></span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 space-y-3">
+                        <h4 data-i18n="change_pass_heading" class="font-bold text-sm text-zinc-900 dark:text-white">নিজের পাসওয়ার্ড পরিবর্তন করুন</h4>
+                        <div>
+                            <label data-i18n="new_pass_label" class="text-xs font-medium text-zinc-500 block mb-1">নতুন পাসওয়ার্ড লিখুন</label>
+                            <input type="text" id="memberNewPassword" placeholder="নতুন পাসওয়ার্ড..." class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3.5 py-2 text-sm outline-none focus:border-zinc-900 dark:focus:border-white">
+                        </div>
+                        <button onclick="changeMyPassword()" data-i18n="update_pass_btn" class="w-full bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-2.5 px-4 rounded-lg text-sm font-semibold transition-transform active:scale-95">
+                            পাসওয়ার্ড সেভ করুন
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== 4. ADMIN PANEL ==================== -->
+            <div id="section-admin" class="hidden space-y-5">
+                
+                <!-- Mess Profile Settings -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90">
+                    <h3 data-i18n="admin_settings_title" class="font-bold text-zinc-900 dark:text-white mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-2.5 tracking-tight">মেস প্রোফাইল ও নিয়ম কন্ট্রোল</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <label data-i18n="lbl_mess_name" class="block text-xs font-medium text-zinc-500 mb-1">মেসের নাম</label>
+                            <input type="text" id="setMessName" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_monthly_fee" class="block text-xs font-medium text-zinc-500 mb-1">মাসিক ফি (₹)</label>
+                            <input type="number" id="setMonthlyFee" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium tabular-nums">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_deduction" class="block text-xs font-medium text-zinc-500 mb-1">২ বেলা না খেলে মাইনাস (₹)</label>
+                            <input type="number" id="setDeduction" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium tabular-nums">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_guest_rate" class="block text-xs font-medium text-zinc-500 mb-1">গেস্ট মিল রেট (₹)</label>
+                            <input type="number" id="setGuestRate" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium tabular-nums">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_upi_id" class="block text-xs font-medium text-zinc-500 mb-1">মেসের UPI ID</label>
+                            <input type="text" id="setUpiId" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-mono">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_notice" class="block text-xs font-medium text-zinc-500 mb-1">নোটিশ বোর্ড টেক্সট</label>
+                            <input type="text" id="setNotice" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+                    <button onclick="saveMessSettings()" data-i18n="update_settings_btn" class="mt-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-5 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95">সেটিংস আপডেট করুন</button>
+                </div>
+
+                <!-- Add New Member -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90">
+                    <h3 data-i18n="admin_member_title" class="font-bold text-zinc-900 dark:text-white mb-2.5 border-b border-zinc-100 dark:border-zinc-800 pb-2.5 tracking-tight">নতুন মেম্বার অ্যাড করুন</h3>
+                    <p class="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl mb-3.5 border border-zinc-200/80 dark:border-zinc-800">
+                        <strong>টিপস:</strong> কোনো মেম্বার মাসের মাঝখানে বা ১ তারিখের পরে মেসে উঠলে তার <strong>"মিল শুরুর তারিখ (Joining Date)"</strong> সিলেক্ট করুন। তার আগের দিনগুলো অটোমেটিক্যালি <strong>Full Off (মাইনাস)</strong> হয়ে যাবে।
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-3 text-sm items-end">
+                        <div>
+                            <label data-i18n="lbl_full_name" class="block text-xs font-medium text-zinc-500 mb-1">পুরো নাম</label>
+                            <input type="text" id="memName" placeholder="Suman Das" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_username" class="block text-xs font-medium text-zinc-500 mb-1">লগইন আইডি (ID)</label>
+                            <input type="text" id="memUsername" placeholder="suman" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_password" class="block text-xs font-medium text-zinc-500 mb-1">পাসওয়ার্ড</label>
+                            <input type="text" id="memPassword" placeholder="1234" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_phone" class="block text-xs font-medium text-zinc-500 mb-1">ফোন (WhatsApp)</label>
+                            <input type="text" id="memPhone" placeholder="9876543210" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_join_date" class="block text-xs font-semibold text-zinc-800 dark:text-zinc-200 mb-1">মিল শুরুর তারিখ</label>
+                            <input type="date" id="memJoinDate" min="2026-11-01" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-2.5 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_role" class="block text-xs font-medium text-zinc-500 mb-1">রোল (Role)</label>
+                            <select id="memRole" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium">
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3.5 flex gap-2">
+                        <button onclick="saveNewMember()" data-i18n="save_member_btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95">নতুন মেম্বার সেভ করুন</button>
+                    </div>
+
+                    <!-- Member List Table -->
+                    <div class="mt-6 overflow-x-auto rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[560px]">
+                            <thead>
+                                <tr class="bg-zinc-50/90 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">
+                                    <th data-i18n="th_name" class="p-3">নাম</th>
+                                    <th data-i18n="th_login_id" class="p-3">লগইন আইডি</th>
+                                    <th data-i18n="lbl_phone" class="p-3">ফোন</th>
+                                    <th data-i18n="lbl_join_date" class="p-3">শুরুর তারিখ</th>
+                                    <th data-i18n="lbl_role" class="p-3">রোল</th>
+                                    <th data-i18n="th_action" class="p-3 text-center">প্রোফাইল ও WhatsApp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminMemberList" class="divide-y divide-zinc-100 dark:divide-zinc-800 tabular-nums"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Admin Full-Month Meal Override -->
+                <div class="bg-white dark:bg-[#141417] p-4 sm:p-5 rounded-2xl shadow-card border border-zinc-200/80 dark:border-zinc-800/90 space-y-4">
+                    <div>
+                        <h3 data-i18n="admin_override_title" class="font-bold text-zinc-900 dark:text-white tracking-tight">অ্যাডমিন মিল কন্ট্রোল (১ তারিখ থেকে পুরো মাসের যেকোনো দিন অন/অফ করুন)</h3>
+                        <p data-i18n="admin_override_sub" class="text-xs text-zinc-500 mt-0.5">মেম্বার ও মাস সিলেক্ট করে অতীতের বা আগামী যেকোনো দিনের মিল পরিবর্তন করুন</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-900/70 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-zinc-600 dark:text-zinc-300 mb-1">মেম্বার সিলেক্ট করুন:</label>
+                                <select id="adminSelectMember" onchange="loadMemberScheduleForAdmin()" class="w-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-semibold"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-zinc-600 dark:text-zinc-300 mb-1">মাস (Month):</label>
+                                <input type="month" id="adminOverrideMonth" min="2026-11" onchange="loadMemberScheduleForAdmin()" class="w-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 py-2 text-sm font-semibold">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 pt-3 md:pt-0 md:pl-4">
+                            <div class="text-xs font-semibold text-zinc-600 dark:text-zinc-300">এক ক্লিকে একাধিক দিন অফ/অন করুন:</div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <input type="date" id="adminBulkStart" min="2026-11-01" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-2.5 py-1.5 font-medium">
+                                <span class="font-medium text-zinc-500">থেকে</span>
+                                <input type="date" id="adminBulkEnd" min="2026-11-01" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-2.5 py-1.5 font-medium">
+                                <button onclick="applyAdminBulkOverride(false)" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg font-semibold active:scale-95 transition-transform">Full OFF</button>
+                                <button onclick="applyAdminBulkOverride(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold active:scale-95 transition-transform">Full ON</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-[420px] rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="sticky top-0 bg-zinc-100/95 dark:bg-zinc-900/95 backdrop-blur-xs border-b border-zinc-200 dark:border-zinc-800 text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                                <tr>
+                                    <th data-i18n="date_label" class="p-3 font-semibold">তারিখ ও বার</th>
+                                    <th data-i18n="th_morning_meal" class="p-3 text-center font-semibold">সকাল</th>
+                                    <th data-i18n="th_night_meal" class="p-3 text-center font-semibold">রাত</th>
+                                    <th data-i18n="th_day_calc" class="p-3 text-center font-semibold">দিনের হিসাব</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminOverrideTable" class="divide-y divide-zinc-100 dark:divide-zinc-800 tabular-nums"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- NATIVE-FEEL MOBILE BOTTOM TAB BAR (< 768px) -->
+    <nav id="mobileBottomNav" class="hidden md:!hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#121215]/95 backdrop-blur-lg border-t border-zinc-200/80 dark:border-zinc-800/80 px-2 py-1.5 safe-area-pb shadow-dock">
+        <div id="mobileNavGrid" class="grid grid-cols-3 gap-1 max-w-md mx-auto">
+            <button onclick="switchTab('home')" id="mtab-home" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 transition-colors">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[10px] font-semibold">Home</span>
+            </button>
+            <button onclick="switchTab('member')" id="mtab-member" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 transition-colors">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span class="text-[10px] font-medium">My Meals</span>
+            </button>
+            <button onclick="switchTab('profile')" id="mtab-profile" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 transition-colors">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <span class="text-[10px] font-medium">Profile</span>
+            </button>
+            <button onclick="switchTab('admin')" id="mtab-admin" class="hidden flex-col items-center justify-center py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 transition-colors">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span class="text-[10px] font-medium">Admin</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Minimalist Footer -->
+    <footer class="mt-14 bg-white dark:bg-[#121215] border-t border-zinc-200/80 dark:border-zinc-800/80 py-6 text-zinc-500 dark:text-zinc-400">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-3 text-center md:text-left">
+            <div>
+                <p class="text-sm font-bold text-zinc-900 dark:text-white tracking-tight">Mess Management System</p>
+                <p class="text-xs mt-0.5">© 2026 All Rights Reserved.</p>
+            </div>
+            <div>
+                <a href="https://saifurrahaman.vercel.app/" target="_blank" 
+                   class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/70 rounded-lg border border-zinc-200 dark:border-zinc-700 transition">
+                   Visit Portfolio ↗
+                </a>
+            </div>
+            <div class="text-xs">
+                Designed & Developed by <span class="text-zinc-900 dark:text-white font-semibold">Sk Saifur Rahaman</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-[#141417] rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl animate-modal border border-zinc-200 dark:border-zinc-800">
+            <div class="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                <h3 data-i18n="login_modal_title" class="text-base font-bold text-zinc-900 dark:text-white">মেম্বার / অ্যাডমিন লগইন</h3>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label data-i18n="lbl_username" class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">ইউজারনেম (ID)</label>
+                    <input type="text" id="loginUsername" placeholder="admin / rahul" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3.5 py-2 mt-1 text-sm outline-none focus:border-zinc-900 dark:focus:border-white">
+                </div>
+                <div>
+                    <label data-i18n="lbl_password" class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">পাসওয়ার্ড</label>
+                    <input type="password" id="loginPassword" placeholder="••••" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3.5 py-2 mt-1 text-sm outline-none focus:border-zinc-900 dark:focus:border-white">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closeLoginModal()" data-i18n="cancel_btn" class="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">বাতিল</button>
+                    <button onclick="login()" data-i18n="login_btn" class="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-2 rounded-lg text-sm font-semibold transition active:scale-95">লগইন</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin View Profile Modal -->
+    <div id="adminProfileModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-[#141417] rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-modal border border-zinc-200 dark:border-zinc-800">
+            <div class="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+                <h3 data-i18n="modal_profile_title" class="text-base font-bold text-zinc-900 dark:text-white">মেম্বার প্রোফাইল ও কন্ট্রোল</h3>
+                <button onclick="closeAdminProfileModal()" class="text-zinc-400 hover:text-zinc-700 text-lg font-bold">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="modalMemId">
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <label data-i18n="lbl_full_name" class="text-xs font-medium text-zinc-500 block mb-1">পুরো নাম</label>
+                        <input type="text" id="modalMemName" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-semibold">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label data-i18n="lbl_username" class="text-xs font-medium text-zinc-500 block mb-1">ইউজারনেম (ID)</label>
+                            <input type="text" id="modalMemUsername" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-mono">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_password" class="text-xs font-medium text-zinc-500 block mb-1">পাসওয়ার্ড (Live)</label>
+                            <input type="text" id="modalMemPassword" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-mono font-bold">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label data-i18n="lbl_phone" class="text-xs font-medium text-zinc-500 block mb-1">ফোন নম্বর (WhatsApp)</label>
+                            <input type="text" id="modalMemPhone" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label data-i18n="lbl_join_date" class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 block mb-1">মিল শুরুর তারিখ</label>
+                            <input type="date" id="modalMemJoinDate" min="2026-11-01" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-2.5 py-2">
+                        </div>
+                    </div>
+                    <div>
+                        <label data-i18n="lbl_role" class="text-xs font-medium text-zinc-500 block mb-1">রোল (Role)</label>
+                        <select id="modalMemRole" class="w-full border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-3 py-2 font-medium">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-1">
+                    <button onclick="sendWhatsAppFromModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95">
+                        WhatsApp-এ লগইন ID ও Password পাঠান
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                    <button onclick="deleteMemberFromModal()" data-i18n="remove_btn" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
+                        রিমুভ মেম্বার
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="closeAdminProfileModal()" data-i18n="cancel_btn" class="px-3.5 py-2 text-xs font-medium text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">বাতিল</button>
+                        <button onclick="updateMemberFromModal()" data-i18n="save_changes_btn" class="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 text-white px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
+                            এডিট সেভ করুন
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean Alert Modal -->
+    <div id="customPopupOverlay" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
+        <div id="customPopupCard" class="max-w-sm w-full rounded-2xl bg-white dark:bg-[#141417] border border-zinc-200 dark:border-zinc-800 shadow-2xl animate-modal p-6 text-center space-y-4">
+            <div id="popupGlowCircle" class="w-12 h-12 mx-auto rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                ✓
+            </div>
+            <h4 id="popupTitle" class="text-base font-bold text-zinc-900 dark:text-white">
+                সফল হয়েছে!
+            </h4>
+            <p id="popupMessage" class="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed"></p>
+            
+            <div id="popupBtnGroup" class="pt-2 flex justify-center gap-2.5">
+                <button id="popupCancelBtn" class="hidden px-5 py-2 rounded-lg text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition active:scale-95">
+                    বাতিল
+                </button>
+                <button id="popupOkBtn" onclick="closeCustomPopup()" class="w-full py-2.5 px-6 rounded-lg text-xs font-bold text-white bg-zinc-900 dark:bg-white dark:text-zinc-900 transition active:scale-95">
+                    ঠিক আছে (OK)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HIGH-SPEED ENGINE SCRIPT ==================== -->
+    <script>
+        const SUPABASE_URL = 'https://qserfvymplrmxklhuozd.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_3qUAnggPkg9B55Ls4drvKw_DB7UHkzO';
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const START_LOCK_DATE = '2026-11-01';
+        const START_LOCK_MONTH = '2026-11';
+
+        let messConfig = {};
+        let allMembers = [];
+        let currentUser = JSON.parse(localStorage.getItem('messUser')) || null;
+        let currentLang = localStorage.getItem('messLang') || 'bn';
+        let isDarkMode = localStorage.getItem('messDark') === 'true';
+        
+        // Global In-Memory Caches for 0ms Instant UI Updates
+        let dailyLogsCache = {};     // dateStr -> { memberId -> log }
+        let monthlyLogsCache = {};   // monthYear -> [logs]
+        let monthlyPayCache = {};    // monthYear -> [payments]
+        let memberLogsCache = {};
+        let adminLogsCache = {};
+        let expandedMobileCardId = null;
+
+        function applyDarkModeUI() {
+            const htmlEl = document.documentElement;
+            const moon = document.getElementById('themeIconMoon');
+            const sun = document.getElementById('themeIconSun');
+            if (isDarkMode) {
+                htmlEl.classList.add('dark');
+                if (moon) moon.classList.add('hidden');
+                if (sun) sun.classList.remove('hidden');
+            } else {
+                htmlEl.classList.remove('dark');
+                if (moon) moon.classList.remove('hidden');
+                if (sun) sun.classList.add('hidden');
+            }
+        }
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('messDark', isDarkMode);
+            applyDarkModeUI();
+        }
+        applyDarkModeUI();
+
+        function showPopup(message, type = 'success') {
+            const overlay = document.getElementById('customPopupOverlay');
+            const iconBox = document.getElementById('popupGlowCircle');
+            const titleEl = document.getElementById('popupTitle');
+            const msgEl = document.getElementById('popupMessage');
+            const cancelBtn = document.getElementById('popupCancelBtn');
+            const okBtn = document.getElementById('popupOkBtn');
+
+            cancelBtn.classList.add('hidden');
+            okBtn.onclick = () => closeCustomPopup();
+            okBtn.innerText = currentLang === 'bn' ? 'ঠিক আছে' : 'OK';
+            msgEl.innerText = message;
+
+            if (type === 'error') {
+                iconBox.className = 'w-12 h-12 mx-auto rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-xl font-bold';
+                iconBox.innerText = '!';
+                titleEl.innerText = currentLang === 'bn' ? 'সতর্কতা' : 'Notice';
+                okBtn.className = 'w-full py-2.5 px-6 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition';
+            } else {
+                iconBox.className = 'w-12 h-12 mx-auto rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center text-xl font-bold';
+                iconBox.innerText = '✓';
+                titleEl.innerText = currentLang === 'bn' ? 'সফল হয়েছে' : 'Done';
+                okBtn.className = 'w-full py-2.5 px-6 rounded-lg text-xs font-bold text-white bg-zinc-900 dark:bg-white dark:text-zinc-900 transition';
+            }
+            overlay.classList.remove('hidden');
+        }
+
+        function showConfirmPopup(message, onConfirm) {
+            const overlay = document.getElementById('customPopupOverlay');
+            const iconBox = document.getElementById('popupGlowCircle');
+            const titleEl = document.getElementById('popupTitle');
+            const msgEl = document.getElementById('popupMessage');
+            const cancelBtn = document.getElementById('popupCancelBtn');
+            const okBtn = document.getElementById('popupOkBtn');
+
+            iconBox.className = 'w-12 h-12 mx-auto rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center text-xl font-bold';
+            iconBox.innerText = '?';
+            titleEl.innerText = currentLang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Confirm Action';
+            msgEl.innerText = message;
+
+            cancelBtn.classList.remove('hidden');
+            cancelBtn.innerText = currentLang === 'bn' ? 'না' : 'Cancel';
+            cancelBtn.onclick = () => closeCustomPopup();
+
+            okBtn.innerText = currentLang === 'bn' ? 'হ্যাঁ, নিশ্চিত' : 'Confirm';
+            okBtn.className = 'py-2 px-5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition';
+            okBtn.onclick = () => {
+                closeCustomPopup();
+                onConfirm();
+            };
+            overlay.classList.remove('hidden');
+        }
+
+        function closeCustomPopup() {
+            document.getElementById('customPopupOverlay').classList.add('hidden');
+        }
+
+        const i18n = {
+            bn: {
+                login_btn: 'লগইন',
+                logout_btn: 'লগআউট',
+                tab_home: 'হোম ও হিসাব',
+                tab_member: 'আমার মিল ও পেমেন্ট',
+                tab_profile: 'প্রোফাইল',
+                tab_admin: 'অ্যাডমিন প্যানেল',
+                quick_meal_title: 'আজকের আমার মিল স্ট্যাটাস',
+                quick_meal_sub: 'এক ট্যাপেই আজকের মিল অন বা অফ করুন',
+                daily_meal_title: 'প্রতিদিনের মিলের হিসাব',
+                daily_meal_sub: '১ নভেম্বর ২০২৬ থেকে যেকোনো দিনের বাজারের ও রান্নার রেকর্ড দেখুন',
+                date_label: 'তারিখ:',
+                morning_title: 'সকালের রান্না (Morning)',
+                night_title: 'রাতের রান্না (Night)',
+                member_plus_guest: 'মেম্বার + গেস্ট মিল',
+                eating_list_label: 'যারা খাবে (Eating)',
+                off_list_label: 'যারা খাবে না (Off)',
+                monthly_calc_title: 'মাসিক ফি এবং মাইনাসের হিসাব',
+                month_label: 'মাস:',
+                th_member_name: 'মেম্বারের নাম',
+                th_monthly_fee: 'মাসিক ফি',
+                th_full_off: 'ফুল-ডে অফ (২ বেলা)',
+                th_minus_amt: 'মাইনাস টাকা (-)',
+                th_guest_meal: 'গেস্ট মিল (+)',
+                th_payable: 'দেয় টাকা (Payable)',
+                th_payment_status: 'পেমেন্ট ও ভেরিফিকেশন',
+                pay_box_title: 'মাসিক মেস ফি পেমেন্ট ও ভেরিফিকেশন',
+                pay_box_sub: 'আগে UPI বা ক্যাশে টাকা দিয়ে নিচে পেমেন্ট রিকোয়েস্ট পাঠান',
+                this_month_status: 'এই মাসের স্ট্যাটাস',
+                step1_pay: 'ধাপ ১: পেমেন্ট করুন',
+                mess_upi_label: 'মেসের UPI ID:',
+                your_payable_label: 'আপনার দেয় টাকা:',
+                pay_upi_btn: 'UPI অ্যাপ দিয়ে পেমেন্ট করুন',
+                step2_req: 'ধাপ ২: পেমেন্ট ভেরিফিকেশন রিকোয়েস্ট পাঠান',
+                pay_mode_label: 'পেমেন্ট মাধ্যম',
+                utr_label: 'UTR / Transaction ID (শেষ ৪-১২ সংখ্যা)',
+                submit_req_btn: 'পেমেন্ট রিকোয়েস্ট সাবমিট করুন',
+                vacation_title: 'ভ্যাকেশন মোড (একসাথে একাধিক দিন মিল অফ/অন করুন)',
+                from_date_label: 'শুরুর তারিখ (From)',
+                to_date_label: 'শেষ তারিখ (To)',
+                status_label: 'স্ট্যাটাস',
+                opt_both_off: '২ বেলাই খাবো না (Full Off)',
+                opt_both_on: '২ বেলাই খাবো (Full On)',
+                save_btn: 'সেভ করুন',
+                schedule_title: 'তারিখ অনুযায়ী মিল অন/অফ এবং গেস্ট মিল',
+                schedule_sub: 'সকাল ও রাত ২ বেলাই অফ রাখলে সেই দিনের টাকা মাইনাস হবে',
+                th_date_day: 'তারিখ ও বার',
+                th_morning_meal: 'সকালের মিল',
+                th_night_meal: 'রাতের মিল',
+                th_guest_mn: 'গেস্ট (সকাল / রাত)',
+                th_day_calc: 'দিনের হিসাব',
+                my_profile_title: 'আমার প্রোফাইল (My Profile)',
+                current_pass_label: 'বর্তমান পাসওয়ার্ড:',
+                change_pass_heading: 'নিজের পাসওয়ার্ড পরিবর্তন করুন',
+                new_pass_label: 'নতুন পাসওয়ার্ড লিখুন',
+                update_pass_btn: 'পাসওয়ার্ড সেভ করুন',
+                admin_settings_title: 'মেস প্রোফাইল ও নিয়ম কন্ট্রোল',
+                lbl_mess_name: 'মেসের নাম',
+                lbl_monthly_fee: 'মাসিক ফি (₹)',
+                lbl_deduction: '২ বেলা না খেলে মাইনাস (₹)',
+                lbl_guest_rate: 'গেস্ট মিল রেট (₹)',
+                lbl_upi_id: 'মেসের UPI ID',
+                lbl_notice: 'নোটিশ বোর্ড টেক্সট',
+                update_settings_btn: 'সেটিংস আপডেট করুন',
+                admin_member_title: 'নতুন মেম্বার অ্যাড করুন',
+                lbl_full_name: 'পুরো নাম',
+                lbl_username: 'লগইন আইডি (ID)',
+                lbl_password: 'পাসওয়ার্ড',
+                lbl_phone: 'ফোন (WhatsApp)',
+                lbl_join_date: 'মিল শুরুর তারিখ',
+                lbl_role: 'রোল (Role)',
+                save_member_btn: 'নতুন মেম্বার সেভ করুন',
+                th_name: 'নাম',
+                th_login_id: 'লগইন আইডি',
+                th_action: 'প্রোফাইল ও WhatsApp',
+                modal_profile_title: 'মেম্বার প্রোফাইল ও কন্ট্রোল',
+                save_changes_btn: 'এডিট সেভ করুন',
+                view_profile_btn: 'Edit Profile',
+                wa_send_btn: 'WhatsApp',
+                admin_override_title: 'অ্যাডমিন মিল কন্ট্রোল (১ তারিখ থেকে পুরো মাসের যেকোনো দিন অন/অফ করুন)',
+                admin_override_sub: 'মেম্বার ও মাস সিলেক্ট করে অতীতের বা আগামী যেকোনো দিনের মিল পরিবর্তন করুন',
+                login_modal_title: 'মেম্বার / অ্যাডমিন লগইন',
+                cancel_btn: 'বাতিল',
+                today_prefix: 'আজ:',
+                guest_badge: 'গেস্ট',
+                no_one: 'কেউ নেই',
+                everyone_eating: 'সবাই খাবে',
+                days_unit: 'দিন',
+                eat_on_btn: 'খাবো (ON)',
+                eat_off_btn: 'খাবো না (OFF)',
+                minus_text: 'মাইনাস',
+                regular_text: 'রেগুলার',
+                remove_btn: 'রিমুভ মেম্বার',
+                status_paid: 'Paid',
+                status_verifying: 'ভেরিফিকেশন পেন্ডিং',
+                status_pending: 'পেমেন্ট বাকি (Pending)',
+                req_prefix: 'রিকোয়েস্ট:',
+                cash_hand: 'হাতে নগদ',
+                err_past_date: 'অতীতের তারিখের মিল পরিবর্তন করা যাবে না!',
+                err_morn_cutoff: 'আজ সকালের মিল পরিবর্তনের সময় শেষ হয়ে গেছে!',
+                err_night_cutoff: 'দুপুর ২টোর পর আজকের রাতের মিল অফ করা যাবে না!',
+                err_network: 'নেটওয়ার্ক সমস্যার জন্য সেভ হয়নি, আবার চেষ্টা করুন!',
+                err_date_range: 'সঠিক তারিখ সিলেক্ট করুন!',
+                msg_vacation_saved: 'মিলের স্ট্যাটাস সফলভাবে সেভ হয়েছে!',
+                msg_settings_saved: 'মেস সেটিংস সফলভাবে আপডেট হয়েছে!',
+                err_member_fields: 'নাম, ইউজারনেম এবং পাসওয়ার্ড দেওয়া আবশ্যক!',
+                confirm_delete: 'আপনি কি নিশ্চিত এই মেম্বারকে রিমুভ করতে চান?',
+                err_login: 'ভুল ইউজারনেম বা পাসওয়ার্ড!',
+                err_utr: 'অনুগ্রহ করে UPI Transaction / UTR নম্বরের অন্তত শেষ ৪টি সংখ্যা লিখুন!',
+                msg_pay_req_sent: 'আপনার পেমেন্ট রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে! অ্যাডমিন চেক করে Approve করে দেবেন।',
+                msg_pass_updated: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!',
+                msg_member_added: 'নতুন মেম্বার সফলভাবে অ্যাড হয়েছে!',
+                msg_profile_updated: 'প্রোফাইল সফলভাবে আপডেট হয়েছে!'
+            },
+            en: {
+                login_btn: 'Login',
+                logout_btn: 'Logout',
+                tab_home: 'Home & Summary',
+                tab_member: 'My Meals & Payment',
+                tab_profile: 'Profile',
+                tab_admin: 'Admin Panel',
+                quick_meal_title: 'My Meal Status Today',
+                quick_meal_sub: 'Tap to toggle today\'s meal instantly',
+                daily_meal_title: 'Daily Meal Count',
+                daily_meal_sub: 'View market & cooking records from Nov 1, 2026',
+                date_label: 'Date:',
+                morning_title: 'Morning Meal',
+                night_title: 'Night Meal',
+                member_plus_guest: 'Members + Guest Meals',
+                eating_list_label: 'Eating',
+                off_list_label: 'Meal Off',
+                monthly_calc_title: 'Monthly Fee & Deduction Summary',
+                month_label: 'Month:',
+                th_member_name: 'Member Name',
+                th_monthly_fee: 'Monthly Fee',
+                th_full_off: 'Full-Day Off (Both)',
+                th_minus_amt: 'Deduction (-)',
+                th_guest_meal: 'Guest Meal (+)',
+                th_payable: 'Net Payable',
+                th_payment_status: 'Payment & Verification',
+                pay_box_title: 'Monthly Mess Fee Payment & Verification',
+                pay_box_sub: 'Pay via UPI or Cash first, then submit a verification request below',
+                this_month_status: 'This Month Status',
+                step1_pay: 'Step 1: Make Payment',
+                mess_upi_label: 'Mess UPI ID:',
+                your_payable_label: 'Your Payable Amount:',
+                pay_upi_btn: 'Pay via UPI App',
+                step2_req: 'Step 2: Submit Verification Request',
+                pay_mode_label: 'Payment Mode',
+                utr_label: 'UTR / Transaction ID (Last 4-12 digits)',
+                submit_req_btn: 'Submit Payment Request',
+                vacation_title: 'Vacation Mode (Bulk Meal Off/On)',
+                from_date_label: 'From Date',
+                to_date_label: 'To Date',
+                status_label: 'Status',
+                opt_both_off: 'Both Meals OFF (Full Off)',
+                opt_both_on: 'Both Meals ON (Full On)',
+                save_btn: 'Save',
+                schedule_title: 'Date-wise Meal On/Off & Guest Meals',
+                schedule_sub: 'Turning OFF both Morning & Night meals deducts the daily rate',
+                th_date_day: 'Date & Day',
+                th_morning_meal: 'Morning Meal',
+                th_night_meal: 'Night Meal',
+                th_guest_mn: 'Guest (Morn / Night)',
+                th_day_calc: 'Day Status',
+                my_profile_title: 'My Profile',
+                current_pass_label: 'Current Password:',
+                change_pass_heading: 'Change Your Password',
+                new_pass_label: 'Enter New Password',
+                update_pass_btn: 'Save Password',
+                admin_settings_title: 'Mess Profile & Rules Control',
+                lbl_mess_name: 'Mess Name',
+                lbl_monthly_fee: 'Monthly Fee (₹)',
+                lbl_deduction: 'Full-Day Off Deduction (₹)',
+                lbl_guest_rate: 'Guest Meal Rate (₹)',
+                lbl_upi_id: 'Mess UPI ID',
+                lbl_notice: 'Notice Board Text',
+                update_settings_btn: 'Update Settings',
+                admin_member_title: 'Add New Member',
+                lbl_full_name: 'Full Name',
+                lbl_username: 'Login ID',
+                lbl_password: 'Password',
+                lbl_phone: 'Phone (WhatsApp)',
+                lbl_join_date: 'Meal Start Date',
+                lbl_role: 'Role',
+                save_member_btn: 'Save New Member',
+                th_name: 'Name',
+                th_login_id: 'Login ID',
+                th_action: 'Profile & WhatsApp',
+                modal_profile_title: 'Member Profile & Control',
+                save_changes_btn: 'Save Changes',
+                view_profile_btn: 'Edit Profile',
+                wa_send_btn: 'WhatsApp',
+                admin_override_title: 'Admin Meal Control (Toggle Any Date of the Month)',
+                admin_override_sub: 'Select member & month to modify past or upcoming meal records',
+                login_modal_title: 'Member / Admin Login',
+                cancel_btn: 'Cancel',
+                today_prefix: 'Today:',
+                guest_badge: 'Guest',
+                no_one: 'None',
+                everyone_eating: 'Everyone Eating',
+                days_unit: 'Days',
+                eat_on_btn: 'Eating (ON)',
+                eat_off_btn: 'Meal Off (OFF)',
+                minus_text: 'Off',
+                regular_text: 'Regular',
+                remove_btn: 'Remove Member',
+                status_paid: 'Paid',
+                status_verifying: 'Verification Pending',
+                status_pending: 'Payment Pending',
+                req_prefix: 'Req:',
+                cash_hand: 'Cash in Hand',
+                err_past_date: 'Cannot change meals for past dates!',
+                err_morn_cutoff: 'Morning meal cutoff time has passed for today!',
+                err_night_cutoff: 'Cannot turn off night meal after 2:00 PM today!',
+                err_network: 'Network error while saving! Please try again.',
+                err_date_range: 'Please select a valid date range!',
+                msg_vacation_saved: 'Meal status saved successfully!',
+                msg_settings_saved: 'Mess settings updated successfully!',
+                err_member_fields: 'Name, Username, and Password are required!',
+                confirm_delete: 'Are you sure you want to remove this member?',
+                err_login: 'Invalid Username or Password!',
+                err_utr: 'Please enter at least the last 4 digits of the UPI Transaction / UTR ID!',
+                msg_pay_req_sent: 'Payment request submitted! Admin will verify and approve it.',
+                msg_pass_updated: 'Password updated successfully!',
+                msg_member_added: 'New member added successfully!',
+                msg_profile_updated: 'Profile updated successfully!'
+            }
+        };
+
+        const dayNames = {
+            bn: ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'],
+            en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        };
+
+        function t(key) {
+            return i18n[currentLang][key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'bn' ? 'en' : 'bn';
+            localStorage.setItem('messLang', currentLang);
+            applyLanguageUI();
+        }
+
+        function applyLanguageUI() {
+            document.getElementById('langToggleBtn').innerText = currentLang === 'bn' ? 'EN' : 'বাংলা';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) {
+                    el.innerText = i18n[currentLang][key];
+                }
+            });
+            updateLiveDateHeader();
+            updateRuleSubtext();
+            renderAdminMemberList();
+            if (currentUser) renderMemberScheduleUI();
+            if (currentUser && currentUser.role === 'admin') {
+                const selId = document.getElementById('adminSelectMember').value;
+                if (selId) renderAdminOverrideUI(selId);
+            }
+            renderDailyMealBoardFromCache();
+            renderMonthlySummaryFromCache();
+        }
+
+        function getLocalTodayStr() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getMemberEffectiveJoinDate(m) {
+            if (m.join_date && m.join_date >= START_LOCK_DATE) return m.join_date;
+            if (m.created_at) {
+                const cDate = m.created_at.slice(0, 10);
+                if (cDate >= START_LOCK_DATE) return cDate;
+            }
+            return START_LOCK_DATE;
+        }
+
+        window.onload = async () => {
+            const rawToday = getLocalTodayStr();
+            const todayStr = rawToday < START_LOCK_DATE ? START_LOCK_DATE : rawToday;
+            const currentMonthStr = todayStr.slice(0, 7) < START_LOCK_MONTH ? START_LOCK_MONTH : todayStr.slice(0, 7);
+
+            document.getElementById('homeDatePicker').min = START_LOCK_DATE;
+            document.getElementById('homeDatePicker').value = todayStr;
+            document.getElementById('monthPicker').min = START_LOCK_MONTH;
+            document.getElementById('monthPicker').value = currentMonthStr;
+            document.getElementById('bulkStartDate').min = START_LOCK_DATE;
+            document.getElementById('bulkStartDate').value = todayStr;
+            document.getElementById('bulkEndDate').min = START_LOCK_DATE;
+            document.getElementById('bulkEndDate').value = todayStr;
+
+            document.getElementById('memJoinDate').value = todayStr;
+            document.getElementById('adminOverrideMonth').value = currentMonthStr;
+            document.getElementById('adminBulkStart').value = `${currentMonthStr}-01`;
+            document.getElementById('adminBulkEnd').value = todayStr;
+
+            checkAuthUI();
+            applyLanguageUI();
+
+            try {
+                await Promise.all([loadMessSettings(), loadMembers()]);
+                checkAuthUI();
+                await Promise.all([loadDailyMealBoard(), loadMonthlySummary()]);
+            } catch (err) {
+                console.error("Load error:", err);
+            }
+        };
+
+        function updateLiveDateHeader() {
+            const now = new Date();
+            const dayName = dayNames[currentLang][now.getDay()];
+            const locale = currentLang === 'bn' ? 'bn-IN' : 'en-IN';
+            const formatted = now.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+            document.getElementById('liveDateBar').innerText = `${t('today_prefix')} ${dayName}, ${formatted}`;
+        }
+
+        function updateRuleSubtext() {
+            const fee = messConfig.monthly_fee || 2000;
+            const ded = messConfig.full_day_deduction || 50;
+            const gst = messConfig.guest_meal_rate || 40;
+            if (currentLang === 'bn') {
+                document.getElementById('ruleSubtext').innerText = `২ বেলা না খেলে প্রতিদিন ₹${ded} মাইনাস • মাসিক ফি: ₹${fee} • গেস্ট মিল: ₹${gst}`;
+            } else {
+                document.getElementById('ruleSubtext').innerText = `₹${ded} off per full-day absence • Monthly Fee: ₹${fee} • Guest Meal: ₹${gst}`;
+            }
+        }
+
+        async function loadMessSettings() {
+            const { data } = await db.from('mess_settings').select('*').eq('id', 1).single();
+            if (data) {
+                messConfig = data;
+                document.getElementById('navMessName').innerText = data.mess_name;
+                document.getElementById('noticeText').innerText = data.notice;
+                document.getElementById('displayUpiId').innerText = data.upi_id;
+                updateRuleSubtext();
+
+                document.getElementById('setMessName').value = data.mess_name;
+                document.getElementById('setMonthlyFee').value = data.monthly_fee;
+                document.getElementById('setDeduction').value = data.full_day_deduction;
+                document.getElementById('setGuestRate').value = data.guest_meal_rate;
+                document.getElementById('setUpiId').value = data.upi_id;
+                document.getElementById('setNotice').value = data.notice;
+            }
+        }
+
+        async function loadMembers() {
+            const { data } = await db.from('members').select('*').eq('is_active', true).order('name');
+            allMembers = data || [];
+            if (currentUser) {
+                const updatedMe = allMembers.find(m => m.id === currentUser.id);
+                if (updatedMe) {
+                    currentUser = updatedMe;
+                    localStorage.setItem('messUser', JSON.stringify(currentUser));
+                }
+            }
+            renderAdminMemberList();
+        }
+
+        // ==================== INSTANT DAILY MEAL BOARD & QUICK TOGGLE ====================
+        async function loadDailyMealBoard() {
+            let selectedDate = document.getElementById('homeDatePicker').value;
+            if (!selectedDate) return;
+            if (selectedDate < START_LOCK_DATE) {
+                selectedDate = START_LOCK_DATE;
+                document.getElementById('homeDatePicker').value = START_LOCK_DATE;
+            }
+
+            const { data: logs } = await db.from('meal_logs').select('*').eq('meal_date', selectedDate);
+            const logMap = {};
+            (logs || []).forEach(l => logMap[l.member_id] = l);
+            dailyLogsCache[selectedDate] = logMap;
+
+            renderDailyMealBoardFromCache();
+        }
+
+        function renderDailyMealBoardFromCache() {
+            const selectedDate = document.getElementById('homeDatePicker').value;
+            if (!selectedDate) return;
+            const logMap = dailyLogsCache[selectedDate] || {};
+
+            let morningCount = 0, nightCount = 0;
+            let morningEatHTML = '', morningOffHTML = '', nightEatHTML = '', nightOffHTML = '';
+
+            allMembers.forEach(m => {
+                const isMe = currentUser && currentUser.id === m.id;
+                const joinDate = getMemberEffectiveJoinDate(m);
+                const isBeforeJoin = selectedDate < joinDate;
+                const log = logMap[m.id];
+
+                const mEat = log ? log.morning_eat : !isBeforeJoin;
+                const nEat = log ? log.night_eat : !isBeforeJoin;
+                const gMorn = log ? (log.guest_morning || 0) : 0;
+                const gNight = log ? (log.guest_night || 0) : 0;
+
+                const youBadge = isMe ? ` <span class="ml-1.5 px-1.5 py-0.2 text-[10px] font-bold bg-white/20 dark:bg-black/25 rounded">You</span>` : '';
+
+                if (mEat) {
+                    morningCount += 1 + gMorn;
+                    const guestBadge = gMorn > 0 ? ` <span class="ml-1 bg-amber-300 text-amber-950 px-1.5 rounded text-[10px] font-bold">+${gMorn} ${t('guest_badge')}</span>` : '';
+                    const pillClass = isMe 
+                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold'
+                        : 'bg-zinc-100 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/80 font-medium';
+                    morningEatHTML += `<span class="${pillClass} px-2.5 py-1 rounded-lg text-xs inline-flex items-center">${m.name}${youBadge}${guestBadge}</span>`;
+                } else {
+                    const offClass = isMe
+                        ? 'bg-rose-600 text-white font-semibold'
+                        : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 border border-zinc-200/70 dark:border-zinc-800 font-medium line-through';
+                    morningOffHTML += `<span class="${offClass} px-2.5 py-1 rounded-lg text-xs inline-flex items-center">${m.name}${youBadge}</span>`;
+                }
+
+                if (nEat) {
+                    nightCount += 1 + gNight;
+                    const guestBadge = gNight > 0 ? ` <span class="ml-1 bg-amber-300 text-amber-950 px-1.5 rounded text-[10px] font-bold">+${gNight} ${t('guest_badge')}</span>` : '';
+                    const pillClass = isMe 
+                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold'
+                        : 'bg-zinc-100 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/80 font-medium';
+                    nightEatHTML += `<span class="${pillClass} px-2.5 py-1 rounded-lg text-xs inline-flex items-center">${m.name}${youBadge}${guestBadge}</span>`;
+                } else {
+                    const offClass = isMe
+                        ? 'bg-rose-600 text-white font-semibold'
+                        : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 border border-zinc-200/70 dark:border-zinc-800 font-medium line-through';
+                    nightOffHTML += `<span class="${offClass} px-2.5 py-1 rounded-lg text-xs inline-flex items-center">${m.name}${youBadge}</span>`;
+                }
+            });
+
+            document.getElementById('morningTotalCount').innerText = morningCount;
+            document.getElementById('nightTotalCount').innerText = nightCount;
+            document.getElementById('morningEatList').innerHTML = morningEatHTML || `<span class="text-xs text-zinc-400">${t('no_one')}</span>`;
+            document.getElementById('morningOffList').innerHTML = morningOffHTML || `<span class="text-xs text-zinc-400">${t('everyone_eating')}</span>`;
+            document.getElementById('nightEatList').innerHTML = nightEatHTML || `<span class="text-xs text-zinc-400">${t('no_one')}</span>`;
+            document.getElementById('nightOffList').innerHTML = nightOffHTML || `<span class="text-xs text-zinc-400">${t('everyone_eating')}</span>`;
+
+            renderQuickMealCardFromCache();
+        }
+
+        function renderQuickMealCardFromCache() {
+            const card = document.getElementById('quickMealCard');
+            if (!currentUser) {
+                card.classList.add('hidden');
+                return;
+            }
+            card.classList.remove('hidden');
+            document.getElementById('quickUserBadge').innerText = currentUser.name;
+
+            const rawToday = getLocalTodayStr();
+            const todayStr = rawToday < START_LOCK_DATE ? START_LOCK_DATE : rawToday;
+            
+            // Read from cache first (0ms latency)
+            const cachedToday = (dailyLogsCache[todayStr] && dailyLogsCache[todayStr][currentUser.id]) || memberLogsCache[todayStr];
+            const joinDate = getMemberEffectiveJoinDate(currentUser);
+            const mEat = cachedToday ? cachedToday.morning_eat : !(todayStr < joinDate);
+            const nEat = cachedToday ? cachedToday.night_eat : !(todayStr < joinDate);
+
+            document.getElementById('quickToggleButtons').innerHTML = `
+                <button onclick="toggleMeal('${currentUser.id}', '${todayStr}', 'morning', ${!mEat})" 
+                    class="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-100 active:scale-[0.97] ${
+                        mEat ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60' : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
+                    }">
+                    <div class="text-left">
+                        <span class="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Morning</span>
+                        <span class="text-xs sm:text-sm font-bold ${mEat ? 'text-emerald-700 dark:text-emerald-400' : 'text-zinc-500'}">
+                            ${mEat ? 'MEAL ON' : 'MEAL OFF'}
+                        </span>
+                    </div>
+                    <div class="w-10 h-5.5 rounded-full p-0.5 transition-colors duration-150 ${mEat ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-700'}">
+                        <div class="w-4.5 h-4.5 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-150 ${mEat ? 'translate-x-5' : 'translate-x-0'}"></div>
+                    </div>
+                </button>
+
+                <button onclick="toggleMeal('${currentUser.id}', '${todayStr}', 'night', ${!nEat})" 
+                    class="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-100 active:scale-[0.97] ${
+                        nEat ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60' : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
+                    }">
+                    <div class="text-left">
+                        <span class="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Night</span>
+                        <span class="text-xs sm:text-sm font-bold ${nEat ? 'text-emerald-700 dark:text-emerald-400' : 'text-zinc-500'}">
+                            ${nEat ? 'MEAL ON' : 'MEAL OFF'}
+                        </span>
+                    </div>
+                    <div class="w-10 h-5.5 rounded-full p-0.5 transition-colors duration-150 ${nEat ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-700'}">
+                        <div class="w-4.5 h-4.5 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-150 ${nEat ? 'translate-x-5' : 'translate-x-0'}"></div>
+                    </div>
+                </button>
+            `;
+        }
+
+        // ==================== INSTANT MONTHLY SUMMARY ====================
+        function getAllDatesInMonth(monthYear) {
+            const [year, month] = monthYear.split('-').map(Number);
+            const lastDay = new Date(year, month, 0).getDate();
+            const arr = [];
+            for (let d = 1; d <= lastDay; d++) {
+                arr.push(`${monthYear}-${String(d).padStart(2, '0')}`);
+            }
+            return arr;
+        }
+
+        function toggleMobileSummaryCard(memberId) {
+            expandedMobileCardId = expandedMobileCardId === memberId ? null : memberId;
+            renderMonthlySummaryFromCache();
+        }
+
+        async function loadMonthlySummary() {
+            let monthYear = document.getElementById('monthPicker').value;
+            if (!monthYear) return;
+            if (monthYear < START_LOCK_MONTH) {
+                monthYear = START_LOCK_MONTH;
+                document.getElementById('monthPicker').value = START_LOCK_MONTH;
+            }
+
+            const monthDates = getAllDatesInMonth(monthYear);
+            const [logsRes, paymentsRes] = await Promise.all([
+                db.from('meal_logs').select('*').gte('meal_date', monthDates[0]).lte('meal_date', monthDates[monthDates.length - 1]),
+                db.from('payments').select('*').eq('month_year', monthYear)
+            ]);
+
+            monthlyLogsCache[monthYear] = logsRes.data || [];
+            monthlyPayCache[monthYear] = paymentsRes.data || [];
+
+            renderMonthlySummaryFromCache();
+        }
+
+        function renderMonthlySummaryFromCache() {
+            const monthYear = document.getElementById('monthPicker').value;
+            if (!monthYear) return;
+
+            const monthDates = getAllDatesInMonth(monthYear);
+            const logs = monthlyLogsCache[monthYear] || [];
+            const payments = monthlyPayCache[monthYear] || [];
+
+            const payMap = {};
+            payments.forEach(p => payMap[p.member_id] = p);
+
+            const baseFee = messConfig.monthly_fee || 2000;
+            const deductRate = messConfig.full_day_deduction || 50;
+            const guestRate = messConfig.guest_meal_rate || 40;
+
+            let tbodyHTML = '';
+            let mobileHTML = '';
+
+            allMembers.forEach(m => {
+                const isMe = currentUser && currentUser.id === m.id;
+                const joinDate = getMemberEffectiveJoinDate(m);
+                const memberLogsMap = {};
+                logs.filter(l => l.member_id === m.id).forEach(l => {
+                    memberLogsMap[l.meal_date] = l;
+                });
+
+                let fullOffDays = 0;
+                let totalGuestMeals = 0;
+
+                monthDates.forEach(dStr => {
+                    const l = memberLogsMap[dStr];
+                    if (l) {
+                        if (l.morning_eat === false && l.night_eat === false) fullOffDays++;
+                        totalGuestMeals += (l.guest_morning || 0) + (l.guest_night || 0);
+                    } else if (dStr < joinDate) {
+                        fullOffDays++;
+                    }
+                });
+
+                const minusAmount = fullOffDays * deductRate;
+                const guestAmount = totalGuestMeals * guestRate;
+                const finalPayable = Math.max(0, baseFee - minusAmount + guestAmount);
+
+                const payRecord = payMap[m.id] || { status: 'Pending', payment_mode: '-', transaction_ref: '' };
+                const status = payRecord.status;
+                const refText = payRecord.transaction_ref ? ` • UTR: ${payRecord.transaction_ref}` : '';
+
+                if (isMe) {
+                    document.getElementById('memberMyPayable').innerText = `₹${finalPayable}`;
+                    document.getElementById('upiPayLink').href = `upi://pay?pa=${messConfig.upi_id}&pn=${encodeURIComponent(messConfig.mess_name)}&am=${finalPayable}&cu=INR`;
+                    
+                    const myBadge = document.getElementById('memberMyPayStatus');
+                    if (status === 'Paid') {
+                        myBadge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800';
+                        myBadge.innerText = `${t('status_paid')} (${payRecord.payment_mode}${refText})`;
+                    } else if (status === 'Verification Pending') {
+                        myBadge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800';
+                        myBadge.innerText = `${t('status_verifying')} (${payRecord.payment_mode}${refText})`;
+                    } else {
+                        myBadge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700';
+                        myBadge.innerText = t('status_pending');
+                    }
+                }
+
+                let statusBadge = '';
+                let shortBadge = '';
+                if (status === 'Paid') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800">Paid (${payRecord.payment_mode}${refText})</span>`;
+                    shortBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">Paid</span>`;
+                } else if (status === 'Verification Pending') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300">${t('req_prefix')} ${payRecord.payment_mode}${refText}</span>`;
+                    shortBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">Verifying</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Pending</span>`;
+                    shortBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400">Pending</span>`;
+                }
+
+                let adminButtonsHTML = '';
+                if (currentUser && currentUser.role === 'admin') {
+                    if (status === 'Verification Pending') {
+                        adminButtonsHTML = `
+                            <div class="mt-2 flex justify-center gap-1.5">
+                                <button onclick="updatePayment('${m.id}', '${monthYear}', 'Paid', '${payRecord.payment_mode}', '${payRecord.transaction_ref || ''}')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-md font-semibold">Approve</button>
+                                <button onclick="updatePayment('${m.id}', '${monthYear}', 'Pending', '-', '')" class="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded-md font-semibold">Reject</button>
+                            </div>
+                        `;
+                    } else {
+                        adminButtonsHTML = `
+                            <div class="mt-2 flex justify-center gap-1.5">
+                                <button onclick="updatePayment('${m.id}', '${monthYear}', 'Paid', 'Cash', '')" class="text-[11px] bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-600 hover:text-white px-2.5 py-1 rounded-md font-semibold transition">Cash</button>
+                                <button onclick="updatePayment('${m.id}', '${monthYear}', 'Paid', 'UPI', '')" class="text-[11px] bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-900 hover:text-white dark:hover:bg-white dark:hover:text-zinc-900 px-2.5 py-1 rounded-md font-semibold transition">UPI</button>
+                                <button onclick="updatePayment('${m.id}', '${monthYear}', 'Pending', '-', '')" class="text-[11px] bg-zinc-100 dark:bg-zinc-800 hover:bg-rose-600 hover:text-white px-2.5 py-1 rounded-md font-semibold transition">Reset</button>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Desktop Table Row
+                tbodyHTML += `
+                    <tr class="hover:bg-zinc-50/90 dark:hover:bg-zinc-900/50 transition-colors">
+                        <td class="py-3.5 px-4 font-semibold text-zinc-900 dark:text-white">
+                            ${m.name} ${isMe ? '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold">You</span>' : ''}
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-medium text-zinc-600 dark:text-zinc-300">₹${baseFee}</td>
+                        <td class="py-3.5 px-4 text-center font-semibold text-rose-600 dark:text-rose-400">${fullOffDays} ${t('days_unit')}</td>
+                        <td class="py-3.5 px-4 text-center font-semibold text-emerald-600 dark:text-emerald-400">- ₹${minusAmount}</td>
+                        <td class="py-3.5 px-4 text-center font-medium text-zinc-600 dark:text-zinc-300">+ ₹${guestAmount} (${totalGuestMeals})</td>
+                        <td class="py-3.5 px-4 text-center font-extrabold text-zinc-900 dark:text-white text-base">₹${finalPayable}</td>
+                        <td class="py-3.5 px-4 text-center">${statusBadge}${adminButtonsHTML}</td>
+                    </tr>
+                `;
+
+                // Mobile Accordion Card
+                const isExpanded = expandedMobileCardId === m.id;
+                mobileHTML += `
+                    <div class="p-4">
+                        <button onclick="toggleMobileSummaryCard('${m.id}')" class="w-full flex items-center justify-between text-left">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-semibold text-sm text-zinc-900 dark:text-white">${m.name}</span>
+                                    ${isMe ? '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-900 dark:bg-white text-white dark:text-zinc-900">You</span>' : ''}
+                                </div>
+                                <div>${shortBadge}</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <span class="text-[10px] text-zinc-400 block uppercase font-semibold tracking-wider">Payable</span>
+                                    <span class="text-base font-extrabold text-zinc-900 dark:text-white">₹${finalPayable}</span>
+                                </div>
+                                <span class="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500">
+                                    ${isExpanded ? '▲' : '▼'}
+                                </span>
+                            </div>
+                        </button>
+
+                        ${isExpanded ? `
+                            <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-3 animate-modal">
+                                <div class="grid grid-cols-2 gap-2 text-xs bg-zinc-50 dark:bg-zinc-900/70 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+                                    <div class="flex justify-between"><span class="text-zinc-500">Monthly Fee:</span><span class="font-semibold">₹${baseFee}</span></div>
+                                    <div class="flex justify-between"><span class="text-zinc-500">Full-Day Off:</span><span class="font-semibold text-rose-600">${fullOffDays} ${t('days_unit')}</span></div>
+                                    <div class="flex justify-between"><span class="text-zinc-500">Deduction (-):</span><span class="font-semibold text-emerald-600">-₹${minusAmount}</span></div>
+                                    <div class="flex justify-between"><span class="text-zinc-500">Guest Meal (+):</span><span class="font-semibold text-amber-600">+₹${guestAmount}</span></div>
+                                </div>
+                                <div class="text-center text-xs">${statusBadge}</div>
+                                ${adminButtonsHTML}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            document.getElementById('monthlySummaryBody').innerHTML = tbodyHTML;
+            document.getElementById('monthlySummaryMobile').innerHTML = mobileHTML;
+        }
+
+        function toggleUtrInput() {
+            const mode = document.getElementById('reqPayMode').value;
+            const utrBox = document.getElementById('utrInputBox');
+            if (mode === 'Cash') utrBox.classList.add('hidden');
+            else utrBox.classList.remove('hidden');
+        }
+
+        async function submitPaymentRequest() {
+            if (!currentUser) return;
+            const monthYear = document.getElementById('monthPicker').value;
+            const mode = document.getElementById('reqPayMode').value;
+            const utr = document.getElementById('reqUtrNumber').value.trim();
+
+            if (mode === 'UPI' && utr.length < 4) return showPopup(t('err_utr'), 'error');
+
+            const payload = {
+                member_id: currentUser.id,
+                month_year: monthYear,
+                status: 'Verification Pending',
+                payment_mode: mode,
+                transaction_ref: mode === 'UPI' ? utr : t('cash_hand')
+            };
+
+            // Optimistic UI update
+            if (!monthlyPayCache[monthYear]) monthlyPayCache[monthYear] = [];
+            const idx = monthlyPayCache[monthYear].findIndex(p => p.member_id === currentUser.id);
+            if (idx > -1) monthlyPayCache[monthYear][idx] = payload;
+            else monthlyPayCache[monthYear].push(payload);
+            renderMonthlySummaryFromCache();
+
+            document.getElementById('reqUtrNumber').value = '';
+            showPopup(t('msg_pay_req_sent'), 'success');
+
+            const { error } = await db.from('payments').upsert(payload, { onConflict: 'member_id,month_year' });
+            if (error) {
+                showPopup(t('err_network'), 'error');
+                loadMonthlySummary();
+            }
+        }
+
+        // ==================== MEMBER SCHEDULE ====================
+        async function loadMemberSchedule() {
+            if (!currentUser) return;
+            const dates = getNextDays(10);
+            const { data: logs } = await db.from('meal_logs')
+                .select('*')
+                .eq('member_id', currentUser.id)
+                .in('meal_date', dates);
+
+            const joinDate = getMemberEffectiveJoinDate(currentUser);
+            memberLogsCache = {};
+            dates.forEach(d => {
+                const isBefore = d < joinDate;
+                memberLogsCache[d] = { morning_eat: !isBefore, night_eat: !isBefore, guest_morning: 0, guest_night: 0 };
+            });
+            (logs || []).forEach(l => {
+                memberLogsCache[l.meal_date] = l;
+            });
+
+            renderMemberScheduleUI();
+            renderQuickMealCardFromCache();
+        }
+
+        function renderMemberScheduleUI() {
+            if (!currentUser) return;
+            const dates = getNextDays(10);
+            let html = '';
+
+            dates.forEach(dateStr => {
+                const dObj = new Date(dateStr);
+                const dayName = dayNames[currentLang][dObj.getDay()];
+                const log = memberLogsCache[dateStr] || { morning_eat: true, night_eat: true, guest_morning: 0, guest_night: 0 };
+                const bothOff = !log.morning_eat && !log.night_eat;
+
+                html += `
+                    <tr class="${bothOff ? 'bg-rose-50/40 dark:bg-rose-950/20' : 'hover:bg-zinc-50/70 dark:hover:bg-zinc-900/50'} transition-colors">
+                        <td class="py-3 px-4">
+                            <div class="font-semibold text-zinc-900 dark:text-white">${dateStr}</div>
+                            <div class="text-xs text-zinc-500">${dayName}</div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="toggleMeal('${currentUser.id}', '${dateStr}', 'morning', ${!log.morning_eat})" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-transform duration-100 ${log.morning_eat ? 'bg-emerald-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}">
+                                ${log.morning_eat ? t('eat_on_btn') : t('eat_off_btn')}
+                            </button>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="toggleMeal('${currentUser.id}', '${dateStr}', 'night', ${!log.night_eat})" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-transform duration-100 ${log.night_eat ? 'bg-emerald-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}">
+                                ${log.night_eat ? t('eat_on_btn') : t('eat_off_btn')}
+                            </button>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <input type="number" min="0" max="10" value="${log.guest_morning || 0}" 
+                                    onchange="updateGuest('${currentUser.id}', '${dateStr}', this.value, ${log.guest_night || 0})"
+                                    class="w-11 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-md text-center py-1 text-xs font-semibold">
+                                <span class="text-zinc-400">/</span>
+                                <input type="number" min="0" max="10" value="${log.guest_night || 0}" 
+                                    onchange="updateGuest('${currentUser.id}', '${dateStr}', ${log.guest_morning || 0}, this.value)"
+                                    class="w-11 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-md text-center py-1 text-xs font-semibold">
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center font-bold text-xs ${bothOff ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-500'}">
+                            ${bothOff ? `- ₹${messConfig.full_day_deduction || 50} (${t('minus_text')})` : t('regular_text')}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('memberMealTable').innerHTML = html;
+        }
+
+        function getNextDays(count) {
+            const arr = [];
+            const rawToday = getLocalTodayStr();
+            const baseDateStr = rawToday < START_LOCK_DATE ? START_LOCK_DATE : rawToday;
+            const [y, m, d] = baseDateStr.split('-').map(Number);
+            const baseDate = new Date(y, m - 1, d);
+
+            for (let i = 0; i < count; i++) {
+                const cur = new Date(baseDate);
+                cur.setDate(baseDate.getDate() + i);
+                const year = cur.getFullYear();
+                const month = String(cur.getMonth() + 1).padStart(2, '0');
+                const day = String(cur.getDate()).padStart(2, '0');
+                arr.push(`${year}-${month}-${day}`);
+            }
+            return arr;
+        }
+
+        // ZERO-LATENCY OPTIMISTIC MEAL TOGGLE
+        async function toggleMeal(memberId, dateStr, mealType, newValue, isAdminOverride = false) {
+            if (!isAdminOverride && currentUser.role !== 'admin') {
+                const now = new Date();
+                const todayStr = getLocalTodayStr();
+                if (dateStr < todayStr) return showPopup(t('err_past_date'), 'error');
+                if (dateStr === todayStr && mealType === 'morning') return showPopup(t('err_morn_cutoff'), 'error');
+                if (dateStr === todayStr && mealType === 'night' && now.getHours() >= 14) return showPopup(t('err_night_cutoff'), 'error');
+            }
+
+            const targetCache = isAdminOverride ? adminLogsCache : memberLogsCache;
+            const fallbackLog = (dailyLogsCache[dateStr] && dailyLogsCache[dateStr][memberId]) || { morning_eat: true, night_eat: true, guest_morning: 0, guest_night: 0 };
+            const currentLog = targetCache[dateStr] || fallbackLog;
+
+            const updatedLog = {
+                member_id: memberId,
+                meal_date: dateStr,
+                morning_eat: mealType === 'morning' ? newValue : currentLog.morning_eat,
+                night_eat: mealType === 'night' ? newValue : currentLog.night_eat,
+                guest_morning: currentLog.guest_morning || 0,
+                guest_night: currentLog.guest_night || 0
+            };
+
+            // 1. Update All Local Caches Instantly (0ms)
+            targetCache[dateStr] = updatedLog;
+            if (!isAdminOverride || memberId === currentUser.id) {
+                memberLogsCache[dateStr] = updatedLog;
+            }
+            if (!dailyLogsCache[dateStr]) dailyLogsCache[dateStr] = {};
+            dailyLogsCache[dateStr][memberId] = updatedLog;
+
+            const mKey = dateStr.slice(0, 7);
+            if (monthlyLogsCache[mKey]) {
+                const mIdx = monthlyLogsCache[mKey].findIndex(l => l.member_id === memberId && l.meal_date === dateStr);
+                if (mIdx > -1) monthlyLogsCache[mKey][mIdx] = updatedLog;
+                else monthlyLogsCache[mKey].push(updatedLog);
+            }
+
+            // 2. Re-render UI Immediately
+            if (isAdminOverride) renderAdminOverrideUI(memberId);
+            else renderMemberScheduleUI();
+            renderDailyMealBoardFromCache();
+            renderMonthlySummaryFromCache();
+
+            // 3. Background Sync to Supabase
+            const { error } = await db.from('meal_logs').upsert(updatedLog, { onConflict: 'member_id,meal_date' });
+            if (error) {
+                showPopup(t('err_network'), 'error');
+                if (isAdminOverride) loadMemberScheduleForAdmin();
+                else loadMemberSchedule();
+                loadDailyMealBoard();
+                loadMonthlySummary();
+            }
+        }
+
+        async function updateGuest(memberId, dateStr, gMorn, gNight) {
+            const currentLog = memberLogsCache[dateStr] || { morning_eat: true, night_eat: true, guest_morning: 0, guest_night: 0 };
+            const updatedLog = {
+                member_id: memberId,
+                meal_date: dateStr,
+                morning_eat: currentLog.morning_eat,
+                night_eat: currentLog.night_eat,
+                guest_morning: parseInt(gMorn) || 0,
+                guest_night: parseInt(gNight) || 0
+            };
+
+            memberLogsCache[dateStr] = updatedLog;
+            if (!dailyLogsCache[dateStr]) dailyLogsCache[dateStr] = {};
+            dailyLogsCache[dateStr][memberId] = updatedLog;
+
+            const mKey = dateStr.slice(0, 7);
+            if (monthlyLogsCache[mKey]) {
+                const mIdx = monthlyLogsCache[mKey].findIndex(l => l.member_id === memberId && l.meal_date === dateStr);
+                if (mIdx > -1) monthlyLogsCache[mKey][mIdx] = updatedLog;
+                else monthlyLogsCache[mKey].push(updatedLog);
+            }
+
+            renderMemberScheduleUI();
+            renderDailyMealBoardFromCache();
+            renderMonthlySummaryFromCache();
+
+            await db.from('meal_logs').upsert(updatedLog, { onConflict: 'member_id,meal_date' });
+        }
+
+        async function applyBulkMeal() {
+            const start = document.getElementById('bulkStartDate').value;
+            const end = document.getElementById('bulkEndDate').value;
+            const eatVal = document.getElementById('bulkStatus').value === 'true';
+
+            if (!start || !end || start > end || start < START_LOCK_DATE) return showPopup(t('err_date_range'), 'error');
+
+            let curr = new Date(start);
+            const last = new Date(end);
+            const records = [];
+
+            while (curr <= last) {
+                const year = curr.getFullYear();
+                const month = String(curr.getMonth() + 1).padStart(2, '0');
+                const day = String(curr.getDate()).padStart(2, '0');
+                const dStr = `${year}-${month}-${day}`;
+
+                const rec = {
+                    member_id: currentUser.id,
+                    meal_date: dStr,
+                    morning_eat: eatVal,
+                    night_eat: eatVal,
+                    guest_morning: memberLogsCache[dStr]?.guest_morning || 0,
+                    guest_night: memberLogsCache[dStr]?.guest_night || 0
+                };
+                records.push(rec);
+                memberLogsCache[dStr] = rec;
+                if (!dailyLogsCache[dStr]) dailyLogsCache[dStr] = {};
+                dailyLogsCache[dStr][currentUser.id] = rec;
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            renderMemberScheduleUI();
+            renderDailyMealBoardFromCache();
+            showPopup(t('msg_vacation_saved'), 'success');
+
+            await db.from('meal_logs').upsert(records, { onConflict: 'member_id,meal_date' });
+            loadMonthlySummary();
+        }
+
+        // ==================== MEMBER PASSWORD CHANGE ====================
+        async function changeMyPassword() {
+            if (!currentUser) return;
+            const newPass = document.getElementById('memberNewPassword').value.trim();
+            if (!newPass) return showPopup(t('err_member_fields'), 'error');
+
+            const { error } = await db.from('members').update({ password: newPass }).eq('id', currentUser.id);
+            if (error) return showPopup(t('err_network'), 'error');
+
+            currentUser.password = newPass;
+            localStorage.setItem('messUser', JSON.stringify(currentUser));
+            document.getElementById('profileViewPassword').innerText = newPass;
+            document.getElementById('memberNewPassword').value = '';
+
+            await loadMembers();
+            showPopup(t('msg_pass_updated'), 'success');
+        }
+
+        // ==================== ADMIN PANEL ====================
+        async function saveMessSettings() {
+            const updates = {
+                mess_name: document.getElementById('setMessName').value,
+                monthly_fee: parseInt(document.getElementById('setMonthlyFee').value) || 2000,
+                full_day_deduction: parseInt(document.getElementById('setDeduction').value) || 50,
+                guest_meal_rate: parseInt(document.getElementById('setGuestRate').value) || 40,
+                upi_id: document.getElementById('setUpiId').value,
+                notice: document.getElementById('setNotice').value
+            };
+            await db.from('mess_settings').update(updates).eq('id', 1);
+            showPopup(t('msg_settings_saved'), 'success');
+            await loadMessSettings();
+            renderMonthlySummaryFromCache();
+        }
+
+        async function autoMarkPreJoinDaysOff(memberId, joinDateStr) {
+            if (!joinDateStr || joinDateStr <= START_LOCK_DATE) return;
+            const monthStart = `${joinDateStr.slice(0, 7)}-01`;
+            if (joinDateStr <= monthStart) return;
+
+            const [y, m, d] = joinDateStr.split('-').map(Number);
+            const endOffDate = new Date(y, m - 1, d - 1);
+            let curr = new Date(y, m - 1, 1);
+
+            const offRecords = [];
+            while (curr <= endOffDate) {
+                const dStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+                offRecords.push({
+                    member_id: memberId,
+                    meal_date: dStr,
+                    morning_eat: false,
+                    night_eat: false,
+                    guest_morning: 0,
+                    guest_night: 0
+                });
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            if (offRecords.length > 0) {
+                await db.from('meal_logs').upsert(offRecords, { onConflict: 'member_id,meal_date' });
+            }
+        }
+
+        function getWhatsAppUrl(m) {
+            const rawPhone = (m.phone || '').replace(/\D/g, '');
+            const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+            const messTitle = messConfig.mess_name || 'Mess Management';
+            const msg = `🍽️ *${messTitle} - Login Details*\n\n👤 Name: *${m.name}*\n🔑 Username (ID): *${m.username}*\n🔒 Password: *${m.password}*\n🌐 Website: ${window.location.origin}\n\nলগইন করে আপনার মিল অন/অফ এবং পেমেন্ট স্ট্যাটাস চেক করুন।`;
+            return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+        }
+
+        function renderAdminMemberList() {
+            let html = '';
+            let selectHTML = '';
+            allMembers.forEach(m => {
+                selectHTML += `<option value="${m.id}">${m.name}</option>`;
+                const waUrl = getWhatsAppUrl(m);
+                const jDate = getMemberEffectiveJoinDate(m);
+                html += `
+                    <tr class="hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 transition">
+                        <td class="p-3 font-semibold text-zinc-900 dark:text-white">${m.name}</td>
+                        <td class="p-3 font-mono text-xs text-zinc-700 dark:text-zinc-300 font-semibold">${m.username}</td>
+                        <td class="p-3 text-xs">${m.phone || '-'}</td>
+                        <td class="p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">${jDate}</td>
+                        <td class="p-3 uppercase text-xs font-semibold text-zinc-500">${m.role}</td>
+                        <td class="p-3 text-center space-x-1 whitespace-nowrap">
+                            <button onclick="openAdminProfileModal('${m.id}')" class="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 text-white px-3 py-1 rounded-md text-xs font-semibold transition active:scale-95">
+                                ${t('view_profile_btn')}
+                            </button>
+                            <a href="${waUrl}" target="_blank" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold transition active:scale-95">
+                                ${t('wa_send_btn')}
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('adminMemberList').innerHTML = html;
+            const selectEl = document.getElementById('adminSelectMember');
+            if (selectEl) {
+                const prevVal = selectEl.value;
+                selectEl.innerHTML = selectHTML;
+                if (prevVal) selectEl.value = prevVal;
+            }
+            if (currentUser && currentUser.role === 'admin') loadMemberScheduleForAdmin();
+        }
+
+        async function saveNewMember() {
+            const joinDateVal = document.getElementById('memJoinDate').value || START_LOCK_DATE;
+            const basePayload = {
+                name: document.getElementById('memName').value.trim(),
+                username: document.getElementById('memUsername').value.trim().toLowerCase(),
+                password: document.getElementById('memPassword').value.trim(),
+                phone: document.getElementById('memPhone').value.trim(),
+                role: document.getElementById('memRole').value,
+                is_active: true
+            };
+
+            if (!basePayload.name || !basePayload.username || !basePayload.password) {
+                return showPopup(t('err_member_fields'), 'error');
+            }
+
+            let insertedMember = null;
+            const resWithJoin = await db.from('members').insert([{ ...basePayload, join_date: joinDateVal }]).select().single();
+            if (resWithJoin.error) {
+                const resFallback = await db.from('members').insert([basePayload]).select().single();
+                if (resFallback.error) return showPopup(t('err_network'), 'error');
+                insertedMember = resFallback.data;
+            } else {
+                insertedMember = resWithJoin.data;
+            }
+
+            if (insertedMember && insertedMember.id) {
+                await autoMarkPreJoinDaysOff(insertedMember.id, joinDateVal);
+            }
+
+            document.getElementById('memName').value = '';
+            document.getElementById('memUsername').value = '';
+            document.getElementById('memPassword').value = '';
+            document.getElementById('memPhone').value = '';
+            document.getElementById('memRole').value = 'member';
+
+            await loadMembers();
+            loadDailyMealBoard();
+            loadMonthlySummary();
+            showPopup(t('msg_member_added'), 'success');
+        }
+
+        function openAdminProfileModal(memberId) {
+            const m = allMembers.find(item => item.id === memberId);
+            if (!m) return;
+            document.getElementById('modalMemId').value = m.id;
+            document.getElementById('modalMemName').value = m.name;
+            document.getElementById('modalMemUsername').value = m.username;
+            document.getElementById('modalMemPassword').value = m.password;
+            document.getElementById('modalMemPhone').value = m.phone || '';
+            document.getElementById('modalMemJoinDate').value = getMemberEffectiveJoinDate(m);
+            document.getElementById('modalMemRole').value = m.role || 'member';
+            document.getElementById('adminProfileModal').classList.remove('hidden');
+        }
+
+        function closeAdminProfileModal() {
+            document.getElementById('adminProfileModal').classList.add('hidden');
+        }
+
+        function sendWhatsAppFromModal() {
+            const m = {
+                name: document.getElementById('modalMemName').value.trim(),
+                username: document.getElementById('modalMemUsername').value.trim(),
+                password: document.getElementById('modalMemPassword').value.trim(),
+                phone: document.getElementById('modalMemPhone').value.trim()
+            };
+            window.open(getWhatsAppUrl(m), '_blank');
+        }
+
+        async function updateMemberFromModal() {
+            const id = document.getElementById('modalMemId').value;
+            const joinDateVal = document.getElementById('modalMemJoinDate').value || START_LOCK_DATE;
+            const payload = {
+                name: document.getElementById('modalMemName').value.trim(),
+                username: document.getElementById('modalMemUsername').value.trim().toLowerCase(),
+                password: document.getElementById('modalMemPassword').value.trim(),
+                phone: document.getElementById('modalMemPhone').value.trim(),
+                role: document.getElementById('modalMemRole').value
+            };
+
+            if (!payload.name || !payload.username || !payload.password) {
+                return showPopup(t('err_member_fields'), 'error');
+            }
+
+            const { error } = await db.from('members').update({ ...payload, join_date: joinDateVal }).eq('id', id);
+            if (error) {
+                await db.from('members').update(payload).eq('id', id);
+            }
+
+            await autoMarkPreJoinDaysOff(id, joinDateVal);
+
+            closeAdminProfileModal();
+            await loadMembers();
+            checkAuthUI();
+            loadDailyMealBoard();
+            loadMonthlySummary();
+            showPopup(t('msg_profile_updated'), 'success');
+        }
+
+        function deleteMemberFromModal() {
+            const id = document.getElementById('modalMemId').value;
+            showConfirmPopup(t('confirm_delete'), async () => {
+                await db.from('members').update({ is_active: false }).eq('id', id);
+                closeAdminProfileModal();
+                await loadMembers();
+                loadDailyMealBoard();
+                loadMonthlySummary();
+            });
+        }
+
+        async function updatePayment(memberId, monthYear, status, mode, ref = '') {
+            // Instant Optimistic Update
+            if (!monthlyPayCache[monthYear]) monthlyPayCache[monthYear] = [];
+            const idx = monthlyPayCache[monthYear].findIndex(p => p.member_id === memberId);
+            const rec = { member_id: memberId, month_year: monthYear, status: status, payment_mode: mode, transaction_ref: ref };
+            if (idx > -1) monthlyPayCache[monthYear][idx] = rec;
+            else monthlyPayCache[monthYear].push(rec);
+            renderMonthlySummaryFromCache();
+
+            await db.from('payments').upsert(rec, { onConflict: 'member_id,month_year' });
+        }
+
+        // ==================== ADMIN FULL-MONTH OVERRIDE ====================
+        async function loadMemberScheduleForAdmin() {
+            const memberId = document.getElementById('adminSelectMember').value;
+            const monthYear = document.getElementById('adminOverrideMonth').value || START_LOCK_MONTH;
+            if (!memberId) return;
+
+            const dates = getAllDatesInMonth(monthYear);
+            const memberObj = allMembers.find(m => m.id === memberId);
+            const joinDate = memberObj ? getMemberEffectiveJoinDate(memberObj) : START_LOCK_DATE;
+
+            const { data: logs } = await db.from('meal_logs')
+                .select('*')
+                .eq('member_id', memberId)
+                .gte('meal_date', dates[0])
+                .lte('meal_date', dates[dates.length - 1]);
+
+            adminLogsCache = {};
+            dates.forEach(d => {
+                const isBefore = d < joinDate;
+                adminLogsCache[d] = { morning_eat: !isBefore, night_eat: !isBefore, guest_morning: 0, guest_night: 0 };
+            });
+            (logs || []).forEach(l => adminLogsCache[l.meal_date] = l);
+
+            renderAdminOverrideUI(memberId);
+        }
+
+        function renderAdminOverrideUI(memberId) {
+            const monthYear = document.getElementById('adminOverrideMonth').value || START_LOCK_MONTH;
+            const dates = getAllDatesInMonth(monthYear);
+            let html = '';
+
+            dates.forEach(dStr => {
+                const dObj = new Date(dStr);
+                const dayName = dayNames[currentLang][dObj.getDay()];
+                const log = adminLogsCache[dStr] || { morning_eat: true, night_eat: true };
+                const bothOff = !log.morning_eat && !log.night_eat;
+
+                html += `
+                    <tr class="${bothOff ? 'bg-rose-50/40 dark:bg-rose-950/20' : 'hover:bg-zinc-50/70 dark:hover:bg-zinc-900/50'}">
+                        <td class="p-3">
+                            <span class="font-semibold text-zinc-900 dark:text-white">${dStr}</span>
+                            <span class="text-xs text-zinc-500 ml-1">(${dayName})</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="toggleMeal('${memberId}', '${dStr}', 'morning', ${!log.morning_eat}, true)" 
+                                class="px-3 py-1 rounded-md text-xs font-semibold active:scale-95 transition-transform duration-100 ${log.morning_eat ? 'bg-emerald-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}">
+                                ${log.morning_eat ? 'ON' : 'OFF'}
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="toggleMeal('${memberId}', '${dStr}', 'night', ${!log.night_eat}, true)" 
+                                class="px-3 py-1 rounded-md text-xs font-semibold active:scale-95 transition-transform duration-100 ${log.night_eat ? 'bg-emerald-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}">
+                                ${log.night_eat ? 'ON' : 'OFF'}
+                            </button>
+                        </td>
+                        <td class="p-3 text-center text-xs font-bold ${bothOff ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-500'}">
+                            ${bothOff ? `- ₹${messConfig.full_day_deduction || 50} (${t('minus_text')})` : t('regular_text')}
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('adminOverrideTable').innerHTML = html;
+        }
+
+        async function applyAdminBulkOverride(eatVal) {
+            const memberId = document.getElementById('adminSelectMember').value;
+            const start = document.getElementById('adminBulkStart').value;
+            const end = document.getElementById('adminBulkEnd').value;
+
+            if (!memberId || !start || !end || start > end) return showPopup(t('err_date_range'), 'error');
+
+            let curr = new Date(start);
+            const last = new Date(end);
+            const records = [];
+
+            while (curr <= last) {
+                const year = curr.getFullYear();
+                const month = String(curr.getMonth() + 1).padStart(2, '0');
+                const day = String(curr.getDate()).padStart(2, '0');
+                const dStr = `${year}-${month}-${day}`;
+
+                const rec = {
+                    member_id: memberId,
+                    meal_date: dStr,
+                    morning_eat: eatVal,
+                    night_eat: eatVal,
+                    guest_morning: adminLogsCache[dStr]?.guest_morning || 0,
+                    guest_night: adminLogsCache[dStr]?.guest_night || 0
+                };
+                records.push(rec);
+                adminLogsCache[dStr] = rec;
+                if (!dailyLogsCache[dStr]) dailyLogsCache[dStr] = {};
+                dailyLogsCache[dStr][memberId] = rec;
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            renderAdminOverrideUI(memberId);
+            renderDailyMealBoardFromCache();
+            showPopup(t('msg_vacation_saved'), 'success');
+
+            await db.from('meal_logs').upsert(records, { onConflict: 'member_id,meal_date' });
+            loadMonthlySummary();
+        }
+
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        async function login() {
+            const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            const { data } = await db.from('members')
+                .select('*')
+                .eq('username', u)
+                .eq('password', p)
+                .eq('is_active', true)
+                .single();
+
+            if (!data) return showPopup(t('err_login'), 'error');
+
+            currentUser = data;
+            localStorage.setItem('messUser', JSON.stringify(data));
+            closeLoginModal();
+            checkAuthUI();
+            renderDailyMealBoardFromCache();
+            renderMonthlySummaryFromCache();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('messUser');
+            checkAuthUI();
+            switchTab('home');
+            renderDailyMealBoardFromCache();
+            renderMonthlySummaryFromCache();
+        }
+
+        function checkAuthUI() {
+            if (currentUser) {
+                document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('userControls').classList.remove('hidden');
+                document.getElementById('loggedInUserName').innerText = currentUser.name;
+                document.getElementById('desktopRoleTabs').classList.remove('hidden');
+                document.getElementById('mobileBottomNav').classList.remove('hidden');
+
+                document.getElementById('profileViewName').innerText = currentUser.name;
+                document.getElementById('profileViewUsername').innerText = currentUser.username;
+                document.getElementById('profileViewPhone').innerText = currentUser.phone || '-';
+                document.getElementById('profileViewJoinDate').innerText = getMemberEffectiveJoinDate(currentUser);
+                document.getElementById('profileViewRole').innerText = currentUser.role;
+                document.getElementById('profileViewPassword').innerText = currentUser.password;
+
+                const mobileGrid = document.getElementById('mobileNavGrid');
+                if (currentUser.role === 'admin') {
+                    document.getElementById('dtab-admin').classList.remove('hidden');
+                    document.getElementById('mtab-admin').classList.remove('hidden');
+                    document.getElementById('mtab-admin').classList.add('flex');
+                    mobileGrid.className = 'grid grid-cols-4 gap-1 max-w-md mx-auto';
+                    loadMemberScheduleForAdmin();
+                } else {
+                    document.getElementById('dtab-admin').classList.add('hidden');
+                    document.getElementById('mtab-admin').classList.add('hidden');
+                    document.getElementById('mtab-admin').classList.remove('flex');
+                    mobileGrid.className = 'grid grid-cols-3 gap-1 max-w-md mx-auto';
+                }
+                loadMemberSchedule();
+            } else {
+                document.getElementById('loginBtn').classList.remove('hidden');
+                document.getElementById('userControls').classList.add('hidden');
+                document.getElementById('desktopRoleTabs').classList.add('hidden');
+                document.getElementById('mobileBottomNav').classList.add('hidden');
+                document.getElementById('quickMealCard').classList.add('hidden');
+                ['member', 'profile', 'admin'].forEach(t => {
+                    const sec = document.getElementById(`section-${t}`);
+                    if (sec) sec.classList.add('hidden');
+                });
+                document.getElementById('section-home').classList.remove('hidden');
+            }
+        }
+
+        function switchTab(tab) {
+            ['home', 'member', 'profile', 'admin'].forEach(t => {
+                const sec = document.getElementById(`section-${t}`);
+                if (sec) sec.classList.add('hidden');
+                
+                const dBtn = document.getElementById(`dtab-${t}`);
+                if (dBtn) {
+                    dBtn.className = t === tab 
+                        ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-100'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-100';
+                }
+
+                const mBtn = document.getElementById(`mtab-${t}`);
+                if (mBtn && !mBtn.classList.contains('hidden')) {
+                    mBtn.className = t === tab
+                        ? 'flex flex-col items-center justify-center py-1.5 rounded-lg text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 transition-colors'
+                        : 'flex flex-col items-center justify-center py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 transition-colors';
+                }
+            });
+
+            const targetSec = document.getElementById(`section-${tab}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    </script>
+</body>
+</html>
